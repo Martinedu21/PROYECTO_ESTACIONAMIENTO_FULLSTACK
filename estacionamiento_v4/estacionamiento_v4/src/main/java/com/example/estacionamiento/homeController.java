@@ -1,0 +1,70 @@
+package com.example.estacionamiento;
+
+import com.example.estacionamiento.microservicioEstacionamiento.model.estacionamiento;
+import com.example.estacionamiento.microservicioEstacionamiento.service.estacionamientoService;
+import com.example.estacionamiento.microservicioTickets.model.ticket;
+import com.example.estacionamiento.microservicioTickets.service.ticketService;
+import com.example.estacionamiento.microservicioVehiculos.model.vehiculo;
+import com.example.estacionamiento.microservicioVehiculos.service.vehiculoService;
+import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDate;
+
+@RestController
+@RequestMapping("/api")
+public class homeController {
+
+    private final vehiculoService vservice;
+    private final ticketService tservice;
+    private final estacionamientoService eservice;
+    
+    public homeController(vehiculoService vservice, ticketService tservice, estacionamientoService eservice) {
+        this.vservice = vservice;
+        this.tservice = tservice;
+        this.eservice = eservice;
+    }
+
+    public ResponseEntity<ticket> crear_ticket(vehiculo v){
+        ticket t = new ticket();
+        float valor = 0;
+        LocalDate fecha = LocalDate.now();
+        switch (v.getTipo()) {
+            case "Moto":
+                valor = 1000;
+                break;
+            case "Sedan":
+                valor = 2000;
+                break;
+            case "Camioneta":
+                valor = 3000;
+                break;
+            default:
+                valor = 5000;
+                break;
+        }
+        t.setTipo(v.getTipo());
+        t.setValor(valor);
+        t.setFecha(fecha);
+        t.setPatente(v.getPatente());
+        return ResponseEntity.status(HttpStatus.CREATED).body(tservice.guardar(t));
+    }
+
+    public ResponseEntity<estacionamiento> crear_estacionamiento(vehiculo v){
+        estacionamiento e = new estacionamiento();
+        String numero = "a2";
+        e.setNumeroEspacio(numero);
+        e.setPatente(v.getPatente());
+        e.setDisponible(false);
+        return ResponseEntity.status(HttpStatus.CREATED).body(eservice.guardar(e));
+    }
+    
+    @PostMapping("/entrada")
+    public ResponseEntity<vehiculo> crear(@Valid @RequestBody vehiculo v) {
+        crear_ticket(v);
+        crear_estacionamiento(v);
+        return ResponseEntity.status(HttpStatus.CREATED).body(vservice.guardar(v));
+    }
+}
